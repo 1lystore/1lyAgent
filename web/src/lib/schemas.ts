@@ -2,7 +2,8 @@ import { z } from "zod";
 
 export const requestSchema = z.object({
   prompt: z.string().min(3).max(5000),
-  source: z.enum(["human_ui", "external_agent"]).default("human_ui")
+  source: z.enum(["human_ui", "external_agent"]).default("human_ui"),
+  callbackUrl: z.string().url().optional()
 });
 
 export const requestDecisionSchema = z.object({

@@ -26,7 +26,7 @@ export async function POST(req: Request) {
       return err(parsed.error.issues[0]?.message ?? "Invalid payload");
     }
 
-    const { prompt, source } = parsed.data;
+    const { prompt, source, callbackUrl } = parsed.data;
 
     // 1. Store the request (NEW - waiting for agent)
     const { data: request, error: insertError } = await supabase
@@ -35,6 +35,7 @@ export async function POST(req: Request) {
         prompt,
         source,
         status: "NEW",
+        callback_url: callbackUrl || null,
       })
       .select("id")
       .single();
@@ -60,11 +61,12 @@ export async function POST(req: Request) {
     }
 
     // 3. Return 202 Accepted - processing async
+    const backendUrl = process.env.BACKEND_BASE_URL || process.env.VERCEL_URL || "";
     return new Response(JSON.stringify({
       id: request.id,
       status: "processing",
       message: "Request received. Agent is classifying...",
-      statusUrl: `/api/status/${request.id}`,
+      statusUrl: `${backendUrl}/api/status/${request.id}`,
     }), {
       status: 202,
       headers: { "Content-Type": "application/json" },

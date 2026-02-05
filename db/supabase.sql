@@ -22,6 +22,7 @@ create table if not exists requests (
   payment_link text,
   payment_ref text,
   deliverable text,
+  callback_url text,
   created_at timestamptz not null default now()
 );
 
