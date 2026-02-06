@@ -35,11 +35,20 @@ function verifyWebhookSignature(
     .update(signingPayload)
     .digest("hex");
 
+  // Check length first (constant-time comparison requires equal lengths)
+  if (signature.length !== expectedSignature.length) {
+    return false;
+  }
+
   // Constant-time comparison to prevent timing attacks
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expectedSignature)
-  );
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(signature, "hex"),
+      Buffer.from(expectedSignature, "hex")
+    );
+  } catch {
+    return false;
+  }
 }
 
 // POST /api/1ly/payment-webhook - Receive payment notifications from 1ly
