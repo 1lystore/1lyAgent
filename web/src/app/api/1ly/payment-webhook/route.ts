@@ -17,36 +17,24 @@ function getRequiredEnv(key: string): string {
 
 function verifyWebhookSignature(
   signature: string | null,
-  timestamp: string | null,
   payload: any,
   apiKey: string
 ): boolean {
-  if (!signature || !timestamp) {
-    return false;
-  }
-
-  // Create the signing payload: timestamp.jsonPayload
-  const payloadString = JSON.stringify(payload);
-  const signingPayload = `${timestamp}.${payloadString}`;
-
-  // Compute HMAC-SHA256
-  const expectedSignature = crypto
-    .createHmac("sha256", apiKey)
-    .update(signingPayload)
-    .digest("hex");
-
-  // Check length first (constant-time comparison requires equal lengths)
-  if (signature.length !== expectedSignature.length) {
-    return false;
-  }
-
-  // Constant-time comparison to prevent timing attacks
   try {
-    return crypto.timingSafeEqual(
-      Buffer.from(signature, "hex"),
-      Buffer.from(expectedSignature, "hex")
-    );
-  } catch {
+    if (!signature) {
+      return false;
+    }
+
+    // HMAC-SHA256 of JSON payload using API key as secret (per 1ly docs)
+    const payloadString = JSON.stringify(payload);
+    const expectedSignature = crypto
+      .createHmac("sha256", apiKey)
+      .update(payloadString)
+      .digest("hex");
+
+    return signature === expectedSignature;
+  } catch (err) {
+    console.error("Signature verification error:", err);
     return false;
   }
 }
@@ -94,7 +82,7 @@ export async function POST(req: NextRequest) {
 
     // Verify webhook signature (CRITICAL SECURITY)
     const apiKey = getRequiredEnv("ONELY_API_KEY");
-    const isValid = verifyWebhookSignature(signature, timestamp, payload, apiKey);
+    const isValid = verifyWebhookSignature(signature, payload, apiKey);
     if (!isValid) {
       console.error("⚠️ Webhook signature verification FAILED");
       return new Response(
