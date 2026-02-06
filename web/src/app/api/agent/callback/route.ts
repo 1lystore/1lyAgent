@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getSupabaseAdmin } from "@/lib/supabase"
+import { logActivity } from "@/lib/activity"
 
 // Agent calls this when classification is done
 export async function POST(req: NextRequest) {
@@ -49,6 +50,21 @@ export async function POST(req: NextRequest) {
     }
 
     console.log(`✅ Request ${requestId} updated: ${classification}${paymentLink ? ` → ${paymentLink}` : ""}`)
+
+    // Log activity
+    if (paymentLink) {
+      await logActivity(
+        "LINK_CREATED",
+        `${classification} | $${price || 0} USDC | Payment link created`,
+        requestId
+      )
+    } else {
+      await logActivity(
+        "FULFILLED",
+        `${classification} | FREE request completed`,
+        requestId
+      )
+    }
 
     // Forward to external agent's callback URL if provided
     if (existingRequest.callback_url) {

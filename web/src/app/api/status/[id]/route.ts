@@ -8,7 +8,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
     const { data, error } = await supabase
       .from("requests")
-      .select("id,classification,price_usdc,status,payment_link,payment_ref,deliverable,delivery_url,created_at")
+      .select("id,prompt,classification,price_usdc,status,payment_link,payment_ref,deliverable,delivery_url,created_at")
       .eq("id", id)
       .maybeSingle();
 

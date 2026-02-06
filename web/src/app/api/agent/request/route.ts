@@ -2,6 +2,8 @@ import { err, ok } from "@/lib/http";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { requestSchema } from "@/lib/schemas";
 import { classifyWithAgent } from "@/lib/agent";
+import { logActivity, truncatePrompt } from "@/lib/activity";
+import { checkRateLimit, getLowEnergyResponse } from "@/lib/rateLimit";
 
 /**
  * Agent Request Endpoint
@@ -28,6 +30,44 @@ export async function POST(req: Request) {
 
     const { prompt, source, callbackUrl } = parsed.data;
 
+    // 0. Rate limiting check
+    const clientIp = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+    const rateLimit = await checkRateLimit(clientIp);
+
+    if (!rateLimit.allowed) {
+      console.log(`🚫 Rate limit exceeded: ${rateLimit.reason} | IP: ${clientIp}`);
+
+      // Log activity
+      await logActivity(
+        "ERROR",
+        `Rate limit exceeded | Reason: ${rateLimit.reason} | IP: ${clientIp}`,
+        undefined
+      );
+
+      // Get the reason (will never be "ok" here since allowed is false)
+      const limitReason = rateLimit.reason === "per_ip" ? "per_ip" : "global";
+
+      // Return "low on energy" response
+      return new Response(
+        JSON.stringify({
+          error: "rate_limit_exceeded",
+          message: getLowEnergyResponse(limitReason),
+          reason: rateLimit.reason,
+          retryAfter: 60, // seconds
+          coffeeLink: "https://1ly.store/1lyagent/tip",
+        }),
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            "Retry-After": "60",
+            "X-RateLimit-Remaining-Per-IP": String(rateLimit.remainingPerIp || 0),
+            "X-RateLimit-Remaining-Global": String(rateLimit.remainingGlobal || 0),
+          },
+        }
+      );
+    }
+
     // 1. Store the request (NEW - waiting for agent)
     const { data: request, error: insertError } = await supabase
       .from("requests")
@@ -43,6 +83,13 @@ export async function POST(req: Request) {
     if (insertError) throw insertError;
 
     console.log(`[Request ${request.id}] Created, calling agent...`);
+
+    // Log activity: Request received
+    await logActivity(
+      "REQUEST_RECEIVED",
+      `New request: "${truncatePrompt(prompt)}" | Source: ${source}`,
+      request.id
+    );
 
     // 2. Generate delivery and webhook URLs
     const backendUrl = process.env.BACKEND_BASE_URL || process.env.VERCEL_URL || "";

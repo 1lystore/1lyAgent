@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest } from "next/server";
 import crypto from "crypto";
+import { logActivity } from "@/lib/activity";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -139,7 +140,60 @@ export async function POST(req: NextRequest) {
 
     console.log(`✓ Request ${requestId} marked as PAID (tx: ${txHash})`)
 
-    // Special handling for COFFEE_ORDER - queue the coffee
+    // Log activity: Payment confirmed
+    await logActivity(
+      "PAYMENT_CONFIRMED",
+      `Payment confirmed | ${amount} ${currency} | Tx: ${txHash?.substring(0, 8)}...`,
+      requestId
+    )
+
+    // Special handling for CREDIT_SPONSOR - queue the credit
+    if (request.classification === "CREDIT_SPONSOR") {
+      console.log("💳 CREDIT_SPONSOR detected - queuing credit sponsorship...");
+      try {
+        const backendUrl = getRequiredEnv("BACKEND_BASE_URL");
+        await fetch(`${backendUrl}/api/credit/queue`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Internal-Request": "true" // Mark as internal
+          },
+          body: JSON.stringify({
+            sponsorMessage: request.prompt || "Claude credit sponsorship from user",
+            amountUsdc: request.price_usdc || 5.00,
+            sponsorType: "human"
+          })
+        });
+        console.log("✓ Credit sponsorship queued successfully");
+
+        // Log activity
+        await logActivity(
+          "CREDIT_SPONSORED",
+          `💳 Credit sponsored! +$${request.price_usdc || 5.00} USDC | User message: "${request.prompt?.substring(0, 50)}..."`,
+          requestId
+        );
+
+        // Check if agent should auto-buy now that balance increased
+        try {
+          await fetch(`${backendUrl}/api/credit/auto-buy`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Agent-Secret": process.env.AGENT_SHARED_SECRET || ""
+            }
+          });
+          console.log("✓ Auto-buy check triggered");
+        } catch (autoBuyError) {
+          console.error("Auto-buy check failed (non-blocking):", autoBuyError);
+        }
+
+      } catch (creditError) {
+        console.error("Failed to queue credit (non-blocking):", creditError);
+        // Don't fail the webhook if credit queueing fails
+      }
+    }
+
+    // Legacy: Special handling for COFFEE_ORDER - queue the coffee
     if (request.classification === "COFFEE_ORDER") {
       console.log("☕ COFFEE_ORDER detected - queuing coffee order...");
       try {
@@ -169,7 +223,10 @@ export async function POST(req: NextRequest) {
     const agentToken = getRequiredEnv("AGENT_HOOK_TOKEN");
     const backendUrl = getRequiredEnv("BACKEND_BASE_URL");
 
+    const isCreditSponsor = request.classification === "CREDIT_SPONSOR";
     const isCoffeeOrder = request.classification === "COFFEE_ORDER";
+    const isSpecialOrder = isCreditSponsor || isCoffeeOrder;
+
     const fulfillMessage = `FULFILL REQUEST
 
 requestId: ${requestId}
@@ -178,15 +235,16 @@ classification: ${request.classification || "PAID"}
 deliveryUrl: ${request.delivery_url || `${backendUrl}/api/json/${requestId}`}
 
 INSTRUCTIONS:
-1. Generate ${isCoffeeOrder ? "a thank you message for the coffee tip" : "comprehensive JSON answer for this PAID request"}
+1. Generate ${isSpecialOrder ? `a thank you message for the ${isCreditSponsor ? "Claude credit sponsorship" : "coffee tip"}` : "comprehensive JSON answer for this PAID request"}
 2. POST to deliveryUrl using jq to encode JSON properly (handles special characters):
 
-jq -n --arg answer "your ${isCoffeeOrder ? "grateful coffee thank you" : "detailed response"} here" '{answer: $answer}' | \\
+jq -n --arg answer "your ${isSpecialOrder ? `grateful thank you for ${isCreditSponsor ? "credit sponsorship" : "coffee"}` : "detailed response"} here" '{answer: $answer}' | \\
 curl -X POST ${request.delivery_url || `${backendUrl}/api/json/${requestId}`} \\
   -H "Authorization: Bearer $(cat ~/.1lyagent-token)" \\
   -H "Content-Type: application/json" \\
   -d @-
 
+${isCreditSponsor ? "NOTE: Credit sponsorship received! Thank the user for sponsoring your Claude credits and mention that you're now self-sufficient - you auto-buy credits when running low!" : ""}
 ${isCoffeeOrder ? "NOTE: Coffee order has been queued! Thank the user for the tip and let them know the coffee is being processed." : ""}
 REQUIRED: You MUST post the answer to deliveryUrl. User has already paid!`;
 

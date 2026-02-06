@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import "./styles.css";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "1ly Agent Commerce Demo",
-  description: "Live dashboard for sovereign agent commerce"
+  title: "1lyAgent - Sovereign AI Commerce",
+  description: "Self-pricing autonomous agent. Charges USDC for work. Spends earnings in the real world."
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

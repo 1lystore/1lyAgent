@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest } from "next/server";
+import { trackTokenUsage } from "@/lib/tokenTracking";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -88,6 +89,9 @@ export async function POST(
     // Parse JSON answer from request body
     const jsonAnswer = await req.json();
 
+    // Extract tokens_used if provided (agent can optionally report this)
+    const tokensUsed = typeof jsonAnswer.tokens_used === 'number' ? jsonAnswer.tokens_used : 0;
+
     // Update request with JSON answer
     const { error } = await supabase
       .from("requests")
@@ -107,8 +111,18 @@ export async function POST(
 
     console.log(`✓ JSON answer stored for request ${id}`);
 
+    // Track tokens if provided
+    if (tokensUsed > 0) {
+      await trackTokenUsage(tokensUsed, id, "claude-sonnet-4-5");
+      console.log(`📊 Tracked ${tokensUsed} tokens for request ${id}`);
+    }
+
     return new Response(
-      JSON.stringify({ success: true, message: "Answer stored successfully" }),
+      JSON.stringify({
+        success: true,
+        message: "Answer stored successfully",
+        tokens_tracked: tokensUsed
+      }),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (error) {

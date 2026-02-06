@@ -1,0 +1,347 @@
+/* 1lyAgent - Neo-Brutalist Terminal Aesthetic */
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@700&display=swap');
+
+:root {
+  /* Colors - Dark Terminal Theme */
+  --bg-terminal: #0a0a0a;
+  --bg-panel: #111111;
+  --bg-panel-hover: #1a1a1a;
+  --border: #222222;
+  --border-active: #333333;
+
+  --text-primary: #ffffff;
+  --text-secondary: #888888;
+  --text-tertiary: #555555;
+
+  /* Solana Accent Colors */
+  --accent-solana: #14F195;
+  --accent-purple: #9945FF;
+  --accent-warning: #fbbf24;
+  --accent-error: #ff6b6b;
+
+  /* Status Colors */
+  --status-new: #9945FF;
+  --status-processing: #fbbf24;
+  --status-paid: #14F195;
+  --status-fulfilled: #14F195;
+  --status-failed: #ff6b6b;
+
+  /* Shadows */
+  --shadow-brutal: 4px 4px 0 0 rgba(255, 255, 255, 0.1);
+  --shadow-brutal-hover: 6px 6px 0 0 rgba(255, 255, 255, 0.15);
+  --glow-solana: 0 0 20px rgba(20, 241, 149, 0.5);
+  --glow-purple: 0 0 20px rgba(153, 69, 255, 0.5);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--bg-terminal);
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* Typography Hierarchy */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+h1 { font-size: 2.5rem; }
+h2 { font-size: 1.75rem; }
+h3 { font-size: 1.25rem; }
+
+.tagline {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+}
+
+/* Panel/Card Base */
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-brutal);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.panel:hover {
+  border-color: var(--border-active);
+  box-shadow: var(--shadow-brutal-hover);
+  transform: translateY(-2px);
+}
+
+.panel-active {
+  border-color: var(--accent-solana);
+  box-shadow: var(--glow-solana);
+}
+
+/* Button Base */
+.btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 12px 24px;
+  border: 2px solid var(--border-active);
+  background: var(--bg-panel);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-brutal);
+}
+
+.btn:hover {
+  box-shadow: var(--shadow-brutal-hover);
+  transform: translate(-2px, -2px);
+  border-color: var(--accent-solana);
+}
+
+.btn:active {
+  box-shadow: 2px 2px 0 0 rgba(255, 255, 255, 0.1);
+  transform: translate(2px, 2px);
+}
+
+.btn-primary {
+  border-color: var(--accent-solana);
+  box-shadow: 0 0 0 0 var(--accent-solana);
+  animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(20, 241, 149, 0);
+  }
+  50% {
+    box-shadow: 0 0 20px 4px rgba(20, 241, 149, 0.5);
+  }
+}
+
+.btn-coffee {
+  border-color: var(--accent-purple);
+}
+
+/* Input Base */
+.input {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.95rem;
+  padding: 12px 16px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  width: 100%;
+  transition: all 0.2s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent-solana);
+  box-shadow: 0 0 0 3px rgba(20, 241, 149, 0.1);
+}
+
+.input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* Status Pills */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status-new {
+  color: var(--status-new);
+  border-color: var(--status-new);
+}
+
+.status-processing {
+  color: var(--status-processing);
+  border-color: var(--status-processing);
+}
+
+.status-processing::before {
+  animation: pulse 1.5s infinite;
+}
+
+.status-paid,
+.status-fulfilled {
+  color: var(--status-paid);
+  border-color: var(--status-paid);
+}
+
+.status-failed {
+  color: var(--status-failed);
+  border-color: var(--status-failed);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+/* Terminal/Activity Log */
+.terminal {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  background: var(--bg-terminal);
+  border: 1px solid var(--border);
+  padding: 16px;
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+.terminal::-webkit-scrollbar {
+  width: 8px;
+}
+
+.terminal::-webkit-scrollbar-track {
+  background: var(--bg-terminal);
+}
+
+.terminal::-webkit-scrollbar-thumb {
+  background: var(--border-active);
+  border: 2px solid var(--bg-terminal);
+}
+
+.terminal::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-solana);
+}
+
+.log-entry {
+  display: grid;
+  grid-template-columns: 100px 120px 1fr;
+  gap: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.log-entry:last-child {
+  border-bottom: none;
+}
+
+.log-timestamp {
+  color: var(--text-tertiary);
+}
+
+.log-event {
+  color: var(--accent-solana);
+  font-weight: 600;
+}
+
+.log-data {
+  color: var(--text-secondary);
+  word-break: break-all;
+}
+
+/* Grid System */
+.grid {
+  display: grid;
+  gap: 24px;
+}
+
+.grid-cols-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.grid-cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 1024px) {
+  .grid-cols-2,
+  .grid-cols-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Utility Classes */
+.text-accent {
+  color: var(--accent-solana);
+}
+
+.text-purple {
+  color: var(--accent-purple);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.uppercase {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.glow-green {
+  box-shadow: var(--glow-solana);
+}
+
+.glow-purple {
+  box-shadow: var(--glow-purple);
+}
+
+/* Loading Animation */
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.loading {
+  animation: flicker 1.5s infinite;
+}
+
+/* Slide In Animation */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.slide-in {
+  animation: slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Number Counter */
+.counter {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
