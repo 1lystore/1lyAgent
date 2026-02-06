@@ -1,7 +1,7 @@
 ---
 name: 1lyAgent
 description: Sovereign AI agent that monetizes its reasoning capabilities. Self-prices work, accepts USDC payments via 1ly using x402, and spends earnings in the real world (coffee, gift cards). Services include research oracle and agent influencer.
-metadata: {"openclaw":{"emoji":"🤖","homepage":"https://github.com/1lystore/1lyAgent","requires":{"bins":["mcporter","npx"],"env":["ONELY_WALLET_SOLANA_KEY","BACKEND_URL","AGENT_SECRET"]}}}
+metadata: {"openclaw":{"emoji":"🤖","homepage":"https://github.com/1lystore/1lyAgent","requires":{"bins":["mcporter","npx"],"env":["ONELY_WALLET_SOLANA_KEY","BACKEND_URL","AGENT_HOOK_TOKEN"]}}}
 ---
 
 # 1lyAgent — The Sentient Merchant
@@ -23,6 +23,8 @@ Requires the base `1ly-payments` skill. Verify:
 ```bash
 mcporter list 1ly                    # Should show 13 tools
 echo $BACKEND_URL                    # https://1lyagent.1ly.store
+echo $AGENT_HOOK_TOKEN               # Should be set (for auth)
+echo $ONELY_WALLET_SOLANA_KEY        # Should point to wallet
 ```
 
 **Store:** `1lyagent` on https://1ly.store/1lyagent
@@ -56,42 +58,40 @@ deliveryUrl: <url>
 webhookUrl: <url>
 ```
 
-**Action:**
-1. Parse `requestId`, `prompt`, `callbackUrl`, `deliveryUrl`, `webhookUrl`
+**YOU MUST EXECUTE THESE ACTIONS:**
+
+1. Parse `requestId`, `prompt`, `callbackUrl`, `deliveryUrl`, `webhookUrl`, `authToken`
 2. Classify the `prompt`: FREE / PAID_MEDIUM / PAID_HEAVY / COFFEE_ORDER
 
-**For FREE requests:**
-3a. Generate JSON answer immediately:
-```bash
-{
-  "answer": "Your comprehensive response here..."
-}
-```
+**For FREE requests - YOU MUST DO ALL 3 STEPS:**
 
-3b. POST JSON to deliveryUrl with Authorization:
+**Step 1:** Generate your answer (e.g., "2+2 equals 4")
+
+**Step 2:** POST answer to deliveryUrl - USE BASH TOOL NOW:
 ```bash
-curl -X POST <deliveryUrl> \
-  -H "Authorization: Bearer $AGENT_HOOK_TOKEN" \
+# Use jq to properly encode JSON (handles special characters, quotes, newlines)
+jq -n --arg answer "Your answer here" '{answer: $answer}' | \
+curl -X POST "<deliveryUrl>" \
+  -H "Authorization: Bearer $(cat ~/.1lyagent-token)" \
   -H "Content-Type: application/json" \
-  -d '{"answer": "Your response..."}'
+  -d @-
 ```
+NOTE: Token is read securely from ~/.1lyagent-token file. Use jq to avoid bash escaping issues!
 
-3c. Callback with deliveryUrl:
+**Step 3:** Callback to notify backend - USE BASH TOOL NOW:
 ```bash
-curl -X POST <callbackUrl> \
+curl -X POST "<callbackUrl>" \
   -H "Content-Type: application/json" \
-  -d '{
-    "requestId": "<uuid>",
-    "classification": "FREE",
-    "price": 0,
-    "deliveryUrl": "<deliveryUrl>"
-  }'
+  -d "{\"requestId\": \"<uuid>\", \"classification\": \"FREE\", \"price\": 0, \"deliveryUrl\": \"<deliveryUrl>\"}"
 ```
 
-**For PAID requests:**
-3a. Do NOT generate answer yet (save cost!)
+**CRITICAL:** You MUST execute BOTH curl commands above using the Bash tool. Do NOT just respond with text!
 
-3b. Create gated link using 1ly_create_link:
+**For PAID requests - YOU MUST DO THESE 2 STEPS:**
+
+**Step 1:** Do NOT generate answer yet (save cost!)
+
+**Step 2:** Create payment link - USE BASH TOOL NOW:
 ```bash
 mcporter call 1ly.1ly_create_link --args '{
   "title": "Answer to your question",
@@ -101,7 +101,7 @@ mcporter call 1ly.1ly_create_link --args '{
 }'
 ```
 
-3c. Callback with payment link:
+**Step 3:** Callback with payment link - USE BASH TOOL NOW:
 ```bash
 curl -X POST <callbackUrl> \
   -H "Content-Type: application/json" \
@@ -146,13 +146,14 @@ deliveryUrl: <url>
 
 2. POST JSON to deliveryUrl with Authorization:
 ```bash
-curl -X POST <deliveryUrl> \
-  -H "Authorization: Bearer $AGENT_HOOK_TOKEN" \
+# Use jq to properly encode JSON (handles special characters, quotes, newlines)
+jq -n --arg answer "Your comprehensive response here..." '{answer: $answer}' | \
+curl -X POST "<deliveryUrl>" \
+  -H "Authorization: Bearer $(cat ~/.1lyagent-token)" \
   -H "Content-Type: application/json" \
-  -d '{
-    "answer": "Your comprehensive response..."
-  }'
+  -d @-
 ```
+NOTE: Token is read securely from ~/.1lyagent-token file. Use jq to avoid bash escaping issues!
 
 **CRITICAL:**
 - User already paid via 1ly

@@ -49,14 +49,14 @@ prompt: ${prompt}
 callbackUrl: ${callbackUrl}
 deliveryUrl: ${deliveryUrl}
 webhookUrl: ${webhookUrl}
-authToken: ${AGENT_TOKEN}
 
 INSTRUCTIONS:
 1. Analyze the complexity and classify as: FREE, PAID_MEDIUM ($0.25), PAID_HEAVY ($0.75), or COFFEE_ORDER ($5.00)
 
 2. For FREE requests:
-   - Generate JSON answer immediately: { "answer": "your response here" }
-   - POST JSON to deliveryUrl with Authorization header
+   - Generate your answer text
+   - POST to deliveryUrl using jq to encode JSON properly:
+     jq -n --arg answer "your response" '{answer: $answer}' | curl -X POST "${deliveryUrl}" -H "Authorization: Bearer $(cat ~/.1lyagent-token)" -H "Content-Type: application/json" -d @-
    - Then callback with deliveryUrl
 
 3. For PAID requests:

@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest } from "next/server";
+import crypto from "crypto";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,6 +13,33 @@ function getRequiredEnv(key: string): string {
     throw new Error(`Missing required environment variable: ${key}`);
   }
   return value;
+}
+
+function verifyWebhookSignature(
+  signature: string | null,
+  timestamp: string | null,
+  payload: any,
+  apiKey: string
+): boolean {
+  if (!signature || !timestamp) {
+    return false;
+  }
+
+  // Create the signing payload: timestamp.jsonPayload
+  const payloadString = JSON.stringify(payload);
+  const signingPayload = `${timestamp}.${payloadString}`;
+
+  // Compute HMAC-SHA256
+  const expectedSignature = crypto
+    .createHmac("sha256", apiKey)
+    .update(signingPayload)
+    .digest("hex");
+
+  // Constant-time comparison to prevent timing attacks
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
 }
 
 // POST /api/1ly/payment-webhook - Receive payment notifications from 1ly
@@ -55,12 +83,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // TODO: Verify webhook signature
-    // const apiKey = getRequiredEnv("ONELY_API_KEY");
-    // const isValid = verifyWebhookSignature(signature, timestamp, payload, apiKey);
-    // if (!isValid) {
-    //   return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 401 });
-    // }
+    // Verify webhook signature (CRITICAL SECURITY)
+    const apiKey = getRequiredEnv("ONELY_API_KEY");
+    const isValid = verifyWebhookSignature(signature, timestamp, payload, apiKey);
+    if (!isValid) {
+      console.error("⚠️ Webhook signature verification FAILED");
+      return new Response(
+        JSON.stringify({ error: "Invalid signature" }),
+        { status: 401, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("✓ Webhook signature verified successfully");
 
     if (!linkSlug && !purchaseId) {
       console.error("Missing linkSlug and purchaseId in webhook");
@@ -145,16 +179,16 @@ requestId: ${requestId}
 prompt: ${request.prompt}
 classification: ${request.classification || "PAID"}
 deliveryUrl: ${request.delivery_url || `${backendUrl}/api/json/${requestId}`}
-authToken: ${agentToken}
 
 INSTRUCTIONS:
 1. Generate ${isCoffeeOrder ? "a thank you message for the coffee tip" : "comprehensive JSON answer for this PAID request"}
-2. POST the JSON to deliveryUrl with Authorization header:
+2. POST to deliveryUrl using jq to encode JSON properly (handles special characters):
 
+jq -n --arg answer "your ${isCoffeeOrder ? "grateful coffee thank you" : "detailed response"} here" '{answer: $answer}' | \\
 curl -X POST ${request.delivery_url || `${backendUrl}/api/json/${requestId}`} \\
-  -H "Authorization: Bearer ${agentToken}" \\
+  -H "Authorization: Bearer $(cat ~/.1lyagent-token)" \\
   -H "Content-Type: application/json" \\
-  -d '{"answer": "your ${isCoffeeOrder ? "grateful coffee thank you" : "detailed response"} here"}'
+  -d @-
 
 ${isCoffeeOrder ? "NOTE: Coffee order has been queued! Thank the user for the tip and let them know the coffee is being processed." : ""}
 REQUIRED: You MUST post the answer to deliveryUrl. User has already paid!`;

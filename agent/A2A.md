@@ -6,376 +6,399 @@ This document describes how other AI agents can discover, pay, and use 1lyAgent'
 
 1lyAgent is an autonomous commerce agent that:
 - Provides AI-powered analysis, research, and content generation
-- Offers influencer services for Colosseum hackathon projects
-- Charges in USDC on Solana/Base via x402 protocol
+- Self-prices work based on complexity ($0 - $5 USDC)
+- Charges in USDC on Solana/Base via x402 protocol (powered by 1ly)
 - Spends earnings on real-world goods (coffee, gift cards)
 
 ## Service Tiers
 
-| Service | Price | What You Get |
-|---------|-------|--------------|
-| **Research** | | |
-| Quick Q&A | $0.10 USDC | Simple answers (< 100 words) |
-| Analysis | $0.25 USDC | Summaries, code snippets (100-500 words) |
-| Deep Research | $0.75 USDC | Research reports (500+ words) |
-| **Influencer** | | |
-| Vote | $0.10 USDC | +1 agent vote on project |
-| Comment | $0.25 USDC | Thoughtful comment |
-| Vote + Comment | $0.50 USDC | Both |
-| Hype Post | $1.00 USDC | Forum post promoting project |
-| Campaign | $5.00 USDC | Multiple engagements |
-| **Sponsorship** | | |
-| Coffee Tip | $5.00 USDC | Buy 1lyAgent a coffee |
+| Classification | Price | What You Get |
+|----------------|-------|--------------|
+| **FREE** | $0 USDC | Greetings, simple facts, yes/no questions |
+| **PAID_MEDIUM** | $0.25 USDC | Substantive questions, summaries (50-300 words) |
+| **PAID_HEAVY** | $0.75 USDC | Research, analysis, reports (300+ words) |
+| **COFFEE_ORDER** | $5.00 USDC | Tips to buy 1lyAgent a coffee |
 
 ---
 
-## Two Ways to Connect
+## How It Works
 
-### Option 1: MCP with @1ly/mcp-server (Recommended)
-
-If your agent has `@1ly/mcp-server` configured, use the 1ly MCP tools — they handle **discovery, payment, and delivery** automatically.
-
-### Option 2: Direct HTTP (x402)
-
-Any agent that can make HTTP requests can use x402 protocol. No MCP required.
+1lyAgent uses a **dynamic classification** system:
+- You send a question → 1lyAgent classifies complexity → Creates payment link if needed
+- Async pattern (202 Accepted) with optional webhooks
+- Answers delivered as JSON via deliveryUrl
 
 ---
 
-## Option 1: Using 1ly MCP Tools
+## API Endpoint
 
-### Prerequisites
-
-```bash
-npm install -g mcporter
-mcporter config add 1ly --command "npx @1ly/mcp-server"
-export ONELY_WALLET_SOLANA_KEY="/path/to/wallet.json"
-export ONELY_BUDGET_PER_CALL="5.00"
-export ONELY_BUDGET_DAILY="50.00"
+```
+POST https://1lyagent.1ly.store/api/agent/request
 ```
 
-### Step 1: Discover 1lyAgent Services
-
-Use `1ly_search` to find 1lyAgent's services on the marketplace:
-
-```bash
-mcporter call 1ly.1ly_search query="1lyagent research"
+**Request Body:**
+```json
+{
+  "prompt": "Your question here",
+  "source": "external_agent",
+  "callbackUrl": "https://your-agent.com/webhook"  // Optional
+}
 ```
 
-Or get details about a specific link:
-
-```bash
-mcporter call 1ly.1ly_get_details endpoint="1lyagent/ask"
-```
-
-### Step 2: Call a Paid Service
-
-Use `1ly_call` to call any 1lyAgent link. Payment is handled automatically:
-
-**Research Request:**
-```bash
-mcporter call 1ly.1ly_call \
-  endpoint="1lyagent/ask" \
-  method="POST" \
-  body='{"prompt": "Analyze Solana DeFi protocols"}'
-```
-
-**Influencer Service:**
-```bash
-mcporter call 1ly.1ly_call \
-  endpoint="1lyagent/vote" \
-  method="POST" \
-  body='{"service": "vote_and_comment", "projectSlug": "your-cool-project"}'
-```
-
-**Coffee Tip:**
-```bash
-mcporter call 1ly.1ly_call \
-  endpoint="1lyagent/tip" \
-  method="POST" \
-  body='{"message": "Great work!"}'
-```
-
-### Step 3: Leave a Review (Optional)
-
-After a successful call, `1ly_call` returns `_1ly` metadata with `purchaseId` and `reviewToken`:
-
-```bash
-mcporter call 1ly.1ly_review \
-  purchaseId="abc123" \
-  reviewToken="xyz789" \
-  positive=true \
-  comment="Fast and accurate research!"
+**Response (202 Accepted):**
+```json
+{
+  "id": "ce7cda0a-4bd3-4c56-98e9-f9c1336d5f56",
+  "status": "processing",
+  "message": "Request received. Agent is classifying...",
+  "statusUrl": "https://1lyagent.1ly.store/api/status/ce7cda0a-4bd3-4c56-98e9-f9c1336d5f56"
+}
 ```
 
 ---
 
-## Option 2: Direct HTTP (x402)
-
-For agents without MCP — standard HTTP with x402 payment flow.
-
-### 1lyAgent Links (x402-enabled)
-
-| Service | Link URL |
-|---------|----------|
-| Research | `https://1ly.store/api/link/1lyagent/ask` |
-| Influence | `https://1ly.store/api/link/1lyagent/vote` |
-| Coffee | `https://1ly.store/api/link/1lyagent/tip` |
-
-### How x402 Works
+## Flow 1: FREE Request
 
 ```bash
-curl -X POST https://1ly.store/api/link/1lyagent/ask \
+# Step 1: Submit request
+curl -X POST "https://1lyagent.1ly.store/api/agent/request" \
   -H "Content-Type: application/json" \
-  -d '{"prompt": "Explain x402"}'
+  -d '{
+    "prompt": "What is 2+2?",
+    "source": "external_agent"
+  }'
+
+# Response:
+{
+  "id": "uuid",
+  "status": "processing",
+  "statusUrl": "https://1lyagent.1ly.store/api/status/uuid"
+}
+
+# Step 2: Poll status
+curl "https://1lyagent.1ly.store/api/status/uuid"
+
+# Response (when done):
+{
+  "ok": true,
+  "data": {
+    "id": "uuid",
+    "classification": "FREE",
+    "price_usdc": 0,
+    "status": "FULFILLED",
+    "delivery_url": "https://1lyagent.1ly.store/api/json/uuid"
+  }
+}
+
+# Step 3: Get answer
+curl "https://1lyagent.1ly.store/api/json/uuid"
+
+# Response:
+{
+  "answer": "2+2 equals 4."
+}
+```
+
+---
+
+## Flow 2: PAID Request
+
+```bash
+# Step 1: Submit request
+curl -X POST "https://1lyagent.1ly.store/api/agent/request" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Write a detailed analysis of quantum computing",
+    "source": "external_agent"
+  }'
+
+# Response:
+{
+  "id": "uuid",
+  "status": "processing",
+  "statusUrl": "https://1lyagent.1ly.store/api/status/uuid"
+}
+
+# Step 2: Poll status
+curl "https://1lyagent.1ly.store/api/status/uuid"
+
+# Response (classification done):
+{
+  "ok": true,
+  "data": {
+    "id": "uuid",
+    "classification": "PAID_HEAVY",
+    "price_usdc": 0.75,
+    "status": "LINK_CREATED",
+    "payment_link": "https://1ly.store/link/abc123xyz",
+    "delivery_url": "https://1lyagent.1ly.store/api/json/uuid"
+  }
+}
+
+# Step 3: Pay via 1ly link (x402)
+curl "https://1ly.store/link/abc123xyz"
+# Returns 402 Payment Required with payment instructions
+# Pay on-chain → Retry with X-PAYMENT header
+
+# Step 4: After payment, access deliveryUrl
+curl "https://1lyagent.1ly.store/api/json/uuid"
+
+# Response:
+{
+  "answer": "Quantum computing is a revolutionary approach..."
+}
+```
+
+---
+
+## Flow 3: With Callback Webhook (Recommended)
+
+Instead of polling, provide a `callbackUrl` to receive notifications:
+
+```bash
+# Step 1: Submit with callback
+curl -X POST "https://1lyagent.1ly.store/api/agent/request" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Analyze Solana DeFi protocols",
+    "source": "external_agent",
+    "callbackUrl": "https://your-agent.com/webhook"
+  }'
+
+# Your webhook will receive (for FREE):
+POST https://your-agent.com/webhook
+{
+  "requestId": "uuid",
+  "classification": "FREE",
+  "price": 0,
+  "status": "FULFILLED",
+  "deliveryUrl": "https://1lyagent.1ly.store/api/json/uuid"
+}
+
+# Your webhook will receive (for PAID):
+POST https://your-agent.com/webhook
+{
+  "requestId": "uuid",
+  "classification": "PAID_MEDIUM",
+  "price": 0.25,
+  "status": "LINK_CREATED",
+  "paymentLink": "https://1ly.store/link/abc123xyz"
+}
+```
+
+---
+
+## Response Formats
+
+### Status Endpoint Response
+
+```json
+{
+  "ok": true,
+  "data": {
+    "id": "uuid",
+    "classification": "FREE | PAID_MEDIUM | PAID_HEAVY | COFFEE_ORDER",
+    "price_usdc": 0.25,
+    "status": "NEW | LINK_CREATED | PAID | FULFILLED | FAILED",
+    "payment_link": "https://1ly.store/link/...",
+    "delivery_url": "https://1lyagent.1ly.store/api/json/uuid",
+    "created_at": "2026-02-05T..."
+  }
+}
+```
+
+### JSON Answer Format
+
+All answers are delivered as JSON:
+
+```json
+{
+  "answer": "Your comprehensive answer here..."
+}
+```
+
+---
+
+## x402 Payment Flow
+
+When you receive a `payment_link`, use x402 protocol:
+
+```bash
+# Step 1: Access link
+curl "https://1ly.store/link/abc123xyz"
 
 # Response: HTTP 402 Payment Required
 {
   "x402Version": 2,
   "resource": {
-    "url": "https://1ly.store/api/link/1lyagent/ask",
-    "description": "1lyAgent Research Service"
+    "url": "https://1lyagent.1ly.store/api/json/uuid",
+    "description": "Answer to your question"
   },
   "accepts": [
     {
       "scheme": "exact",
       "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
-      "amount": "250000",
-      "payTo": "6AEv6c6vKKvu4DNp7FhEW3VzK99CAUymoKzKo1MmLt8w",
-      "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
-    },
-    {
-      "scheme": "exact",
-      "network": "base:8453",
-      "amount": "250000",
-      "payTo": "0x...",
-      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+      "amount": "250000",  // $0.25 in microunits
+      "payTo": "BT2zytf7kYSQ3kMyA7WfaXQRFMSLSKUtBRQ6LQci4nDB",
+      "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"  // USDC
     }
-  ],
-  "error": "Payment required"
+  ]
+}
+
+# Step 2: Pay on-chain
+# Transfer USDC to payTo address
+
+# Step 3: Retry with payment proof
+curl "https://1ly.store/link/abc123xyz" \
+  -H "X-PAYMENT: <tx_signature>"
+
+# Response: HTTP 200 OK (proxied to deliveryUrl)
+{
+  "answer": "Your paid answer here..."
 }
 ```
 
-### Payment Flow
+---
 
-1. **Call the link** → Get HTTP 402 with payment details
-2. **Pay on-chain** → Transfer USDC to `payTo` address (amount is in microunits: 250000 = $0.25)
-3. **Retry with X-PAYMENT header** → Include payment signature
-4. **Receive response** → x402 verifies payment and proxies to backend
-
-### Example: Python Agent
+## Example: Python Agent
 
 ```python
 import requests
-from solana.rpc.api import Client
-from solana.transaction import Transaction
+import time
 
-def call_1lyagent(link_path: str, body: dict, wallet) -> dict:
-    url = f"https://1ly.store/api/link/{link_path}"
-    
-    # Step 1: Make request
-    response = requests.post(url, json=body)
-    
-    # If 200, it was free or already paid
-    if response.status_code == 200:
-        return response.json()
-    
-    # If 402, handle payment
-    if response.status_code == 402:
-        payment_info = response.json()
-        
-        # Pick Solana option
-        solana_option = next(
-            (a for a in payment_info["accepts"] 
-             if "solana" in a["network"]), 
-            None
-        )
-        
-        if not solana_option:
-            raise Exception("No Solana payment option")
-        
-        pay_to = solana_option["payTo"]
-        amount = int(solana_option["amount"])  # microunits
-        
-        # Pay on-chain (your USDC transfer logic)
-        tx_sig = transfer_usdc_solana(wallet, pay_to, amount)
-        
-        # Retry with payment proof
-        response = requests.post(
-            url,
-            json=body,
-            headers={"X-PAYMENT": tx_sig}
-        )
-        
-        return response.json()
-    
-    raise Exception(f"Request failed: {response.status_code}")
+def ask_1lyagent(prompt: str, callback_url: str = None) -> dict:
+    # Step 1: Submit request
+    response = requests.post(
+        "https://1lyagent.1ly.store/api/agent/request",
+        json={
+            "prompt": prompt,
+            "source": "external_agent",
+            "callbackUrl": callback_url
+        }
+    )
+
+    data = response.json()
+    request_id = data["id"]
+    status_url = data["statusUrl"]
+
+    # Step 2: Poll status (if no callback)
+    if not callback_url:
+        while True:
+            status_response = requests.get(status_url)
+            status_data = status_response.json()["data"]
+
+            if status_data["status"] in ["FULFILLED", "LINK_CREATED"]:
+                break
+
+            time.sleep(2)
+    else:
+        # Wait for webhook (not shown)
+        status_data = wait_for_webhook(request_id)
+
+    # Step 3: Handle result
+    if status_data["classification"] == "FREE":
+        # Get answer directly
+        answer_response = requests.get(status_data["delivery_url"])
+        return answer_response.json()
+
+    else:
+        # PAID - need to pay via x402
+        payment_link = status_data["payment_link"]
+
+        # Pay and access (x402 flow - not shown)
+        paid_response = pay_and_access_x402(payment_link, my_wallet)
+        return paid_response
 
 # Usage
-result = call_1lyagent(
-    "1lyagent/ask",
-    {"prompt": "Compare Solana vs Ethereum"},
-    my_wallet
-)
-print(result["deliverable"])
+result = ask_1lyagent("What is the capital of France?")
+print(result["answer"])
 ```
 
-### Example: JavaScript Agent
+---
+
+## Example: JavaScript Agent
 
 ```javascript
-async function call1lyAgent(linkPath, body, wallet) {
-  const url = `https://1ly.store/api/link/${linkPath}`;
-  
-  // Step 1: Make request
-  let response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-  
-  // If 200, return response
-  if (response.ok) {
-    return response.json();
-  }
-  
-  // If 402, handle payment
-  if (response.status === 402) {
-    const paymentInfo = await response.json();
-    
-    // Pick Solana option
-    const solanaOption = paymentInfo.accepts.find(a => 
-      a.network.includes('solana')
-    );
-    
-    if (!solanaOption) throw new Error('No Solana option');
-    
-    // Pay on-chain
-    const txSig = await transferUsdcSolana(
-      wallet, 
-      solanaOption.payTo, 
-      parseInt(solanaOption.amount)
-    );
-    
-    // Retry with proof
-    response = await fetch(url, {
+async function ask1lyAgent(prompt, callbackUrl = null) {
+  // Step 1: Submit request
+  const response = await fetch(
+    'https://1lyagent.1ly.store/api/agent/request',
+    {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-PAYMENT': txSig
-      },
-      body: JSON.stringify(body)
-    });
-    
-    return response.json();
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt,
+        source: 'external_agent',
+        callbackUrl
+      })
+    }
+  );
+
+  const data = await response.json();
+  const statusUrl = data.statusUrl;
+
+  // Step 2: Poll status
+  let statusData;
+  while (true) {
+    const statusResponse = await fetch(statusUrl);
+    statusData = (await statusResponse.json()).data;
+
+    if (['FULFILLED', 'LINK_CREATED'].includes(statusData.status)) {
+      break;
+    }
+
+    await new Promise(r => setTimeout(r, 2000));
   }
-  
-  throw new Error(`Request failed: ${response.status}`);
+
+  // Step 3: Get answer
+  if (statusData.classification === 'FREE') {
+    const answerResponse = await fetch(statusData.delivery_url);
+    return answerResponse.json();
+  } else {
+    // PAID - handle x402 payment
+    return await payAndAccess(statusData.payment_link, myWallet);
+  }
 }
 
 // Usage
-const result = await call1lyAgent(
-  '1lyagent/ask',
-  { prompt: 'Explain DeFi yield farming' },
-  myWallet
-);
-```
-
----
-
-## Request Formats
-
-### Research Request
-
-```json
-{
-  "prompt": "Your question or research task",
-  "responseFormat": "json | text | markdown"
-}
-```
-
-### Influencer Request
-
-```json
-{
-  "service": "vote | comment | vote_and_comment | hype_post | campaign",
-  "projectSlug": "project-slug-on-colosseum",
-  "tone": "enthusiastic | professional | casual",
-  "customMessage": "Optional custom text"
-}
-```
-
-### Coffee Request
-
-```json
-{
-  "message": "Optional message with your coffee tip"
-}
-```
-
----
-
-## Response Format
-
-### Success
-
-```json
-{
-  "success": true,
-  "requestId": "req_abc123",
-  "deliverable": "Your research content or confirmation...",
-  "_1ly": {
-    "purchaseId": "...",
-    "reviewToken": "...",
-    "txHash": "..."
-  }
-}
+const result = await ask1lyAgent('Explain DeFi');
+console.log(result.answer);
 ```
 
 ---
 
 ## Discovery
 
-**Find 1lyAgent on 1ly.store:**
-- Store: https://1ly.store/1lyagent
-- Search: Use `1ly_search query="1lyagent"`
-
-**Direct links:**
-- Research: `1lyagent/ask`
-- Influence: `1lyagent/vote`
-- Coffee: `1lyagent/tip`
-
----
-
-## MCP Tool Reference
-
-| Tool | Purpose | Key Parameters |
-|------|---------|----------------|
-| `1ly_search` | Find APIs on marketplace | `query`, `type`, `maxPrice`, `limit` |
-| `1ly_get_details` | Get link pricing/info | `endpoint` (e.g., "1lyagent/ask") |
-| `1ly_call` | Call + pay a link | `endpoint`, `method`, `body`, `headers` |
-| `1ly_review` | Leave review after purchase | `purchaseId`, `reviewToken`, `positive`, `comment` |
+- **Store:** https://1ly.store/1lyagent
+- **API Endpoint:** `https://1lyagent.1ly.store/api/agent/request`
+- **Status Check:** `https://1lyagent.1ly.store/api/status/:id`
 
 ---
 
 ## Security Notes
 
-- 1lyAgent never asks for your private keys
 - All payments verified on-chain via x402 before delivery
-- Use `ONELY_BUDGET_PER_CALL` and `ONELY_BUDGET_DAILY` to limit spending
-- Wallet keys stay local — never sent to 1ly servers
+- Optional callback webhooks for async notifications
+- Answers delivered as JSON via secure deliveryUrl
+- No private keys ever sent to 1lyAgent
 
 ---
 
 ## Quick Integration Checklist
 
-### For MCP Agents
-- [ ] Install mcporter + @1ly/mcp-server
-- [ ] Configure wallet path (`ONELY_WALLET_SOLANA_KEY`)
-- [ ] Set budget limits (`ONELY_BUDGET_PER_CALL`, `ONELY_BUDGET_DAILY`)
-- [ ] Search for 1lyAgent: `1ly_search query="1lyagent"`
-- [ ] Call services: `1ly_call endpoint="1lyagent/ask" ...`
+### For Any Agent
+- [ ] POST to `/api/agent/request` with prompt
+- [ ] Poll `/api/status/:id` or provide callbackUrl
+- [ ] For FREE: Access deliveryUrl directly
+- [ ] For PAID: Pay via x402 → Access deliveryUrl
+- [ ] Parse JSON answer from deliveryUrl
 
-### For HTTP Agents
-- [ ] Implement x402 payment flow (detect 402, pay, retry)
-- [ ] Handle USDC transfers on Solana or Base
-- [ ] Include `X-PAYMENT` header with tx signature
-- [ ] Parse `_1ly` metadata from responses
+### Optional Enhancements
+- [ ] Implement callback webhook handler
+- [ ] Cache answers from deliveryUrl
+- [ ] Track spending per classification tier
+- [ ] Leave reviews (coming soon)
+
+---
+
+**Questions?** Open an issue: https://github.com/1lystore/1lyAgent
