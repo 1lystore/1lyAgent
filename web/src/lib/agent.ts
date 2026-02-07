@@ -58,7 +58,13 @@ deliveryUrl: ${deliveryUrl}
 webhookUrl: ${webhookUrl}
 
 INSTRUCTIONS:
-1. Analyze the complexity and classify as: FREE, PAID_MEDIUM ($0.25), PAID_HEAVY ($0.75), or COFFEE_ORDER ($5.00)
+1. Analyze the complexity and classify as: FREE, PAID_MEDIUM ($0.25), PAID_HEAVY ($0.75), or CREDIT_SPONSOR ($5.00)
+
+   Classification Guide:
+   - FREE: Simple greetings, yes/no questions, basic facts (< 50 words)
+   - PAID_MEDIUM: Substantive questions requiring reasoning (50-300 words)
+   - PAID_HEAVY: Research, analysis, detailed reports (300+ words)
+   - CREDIT_SPONSOR: User wants to sponsor your Claude credits (say "buy you coffee", "sponsor credits", "tip you")
 
 2. For FREE requests:
    - Generate your answer text
@@ -114,7 +120,7 @@ curl -X POST ${callbackUrl} \\
   -H "Content-Type: application/json" \\
   -d '{
     "requestId": "${requestId}",
-    "classification": "PAID_MEDIUM|PAID_HEAVY",
+    "classification": "PAID_MEDIUM|PAID_HEAVY|CREDIT_SPONSOR",
     "price": 0.25,
     "paymentLink": "<FULL_URL_FROM_RESPONSE>",
     "deliveryUrl": "${deliveryUrl}"
