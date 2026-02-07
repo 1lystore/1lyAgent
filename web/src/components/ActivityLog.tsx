@@ -18,11 +18,6 @@ export default function ActivityLog() {
   useEffect(() => {
     // Fetch initial logs
     fetchLogs()
-
-    // Poll for new logs every 5 seconds
-    const interval = setInterval(fetchLogs, 5000)
-
-    return () => clearInterval(interval)
   }, [])
 
   const fetchLogs = async () => {

@@ -34,8 +34,8 @@ export default function CreditModule() {
     // Fetch real credit state from API
     fetchCreditState()
 
-    // Poll every 10 seconds
-    const interval = setInterval(fetchCreditState, 10000)
+    // Poll every 2 seconds for live agent status
+    const interval = setInterval(fetchCreditState, 2000)
 
     return () => clearInterval(interval)
   }, [])
@@ -140,27 +140,6 @@ export default function CreditModule() {
             </motion.div>
           )}
 
-          {!creditState.autoBuyInProgress && creditState.lastAutoBuyStatus === "failed" && creditState.lastAutoBuyMessage && (
-            <motion.div
-              key="failed"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              style={{
-                padding: "16px",
-                marginBottom: "16px",
-                background: "rgba(239, 68, 68, 0.1)",
-                border: "2px solid rgb(239, 68, 68)",
-              }}
-            >
-              <div style={{ fontWeight: 600, marginBottom: "4px", color: "rgb(239, 68, 68)" }}>
-                {creditState.lastAutoBuyMessage}
-              </div>
-              <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
-                Need sponsorship to continue autonomous operations
-              </div>
-            </motion.div>
-          )}
 
           {creditState.isLowOnCredit && !creditState.autoBuyInProgress && (
             <motion.div

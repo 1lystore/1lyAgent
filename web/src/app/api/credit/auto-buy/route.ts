@@ -99,6 +99,9 @@ export async function POST(req: Request) {
       })
       .eq("id", state.id);
 
+    // Small delay so UI has time to show "in progress" state
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
     // 5. Call OpenRouter API to add credits with USDC
     const openrouterApiKey = process.env.OPENROUTER_API_KEY;
     if (!openrouterApiKey) {
