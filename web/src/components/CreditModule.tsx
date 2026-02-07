@@ -81,94 +81,6 @@ export default function CreditModule() {
           </p>
         </div>
 
-        {/* Live Status Indicators */}
-        <AnimatePresence mode="wait">
-          {creditState.autoBuyInProgress && (
-            <motion.div
-              key="in-progress"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              style={{
-                padding: "16px",
-                marginBottom: "16px",
-                background: "rgba(59, 130, 246, 0.1)",
-                border: "2px solid rgb(59, 130, 246)",
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-              }}
-            >
-              <div
-                style={{
-                  width: "16px",
-                  height: "16px",
-                  border: "2px solid rgb(59, 130, 246)",
-                  borderTopColor: "transparent",
-                  borderRadius: "50%",
-                  animation: "spin 1s linear infinite",
-                }}
-              />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, marginBottom: "4px" }}>Auto-Buy In Progress</div>
-                <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-                  {creditState.lastAutoBuyMessage || "Purchasing credits from OpenRouter..."}
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {!creditState.autoBuyInProgress && creditState.lastAutoBuyStatus === "success" && creditState.lastAutoBuyMessage && (
-            <motion.div
-              key="success"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              style={{
-                padding: "16px",
-                marginBottom: "16px",
-                background: "rgba(34, 197, 94, 0.1)",
-                border: "2px solid rgb(34, 197, 94)",
-              }}
-            >
-              <div style={{ fontWeight: 600, marginBottom: "4px", color: "rgb(34, 197, 94)" }}>
-                {creditState.lastAutoBuyMessage}
-              </div>
-              <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
-                Autonomous agent successfully purchased credits!
-              </div>
-            </motion.div>
-          )}
-
-
-          {creditState.isLowOnCredit && !creditState.autoBuyInProgress && (
-            <motion.div
-              key="low-credit"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              style={{
-                padding: "16px",
-                marginBottom: "16px",
-                background: "rgba(251, 191, 36, 0.1)",
-                border: "2px solid var(--accent-warning)",
-              }}
-            >
-              <div style={{ fontWeight: 600, marginBottom: "4px", color: "var(--accent-warning)" }}>
-                ⚠️ Running Low on Credits
-              </div>
-              <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-                {creditState.tokensSinceLastPurchase} tokens used, ${creditState.balance.toFixed(2)} balance remaining
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <style jsx>{`
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
 
         {/* Credit Balance Display */}
         <motion.div
@@ -283,6 +195,255 @@ export default function CreditModule() {
             </motion.div>
           )}
         </div>
+
+        {/* Autonomous Auto-Buy Flow - Horizontal Progression */}
+        <AnimatePresence>
+          {(creditState.autoBuyInProgress || creditState.lastAutoBuyStatus) && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              style={{
+                marginBottom: "20px",
+                padding: "24px",
+                background: "linear-gradient(135deg, rgba(153, 69, 255, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%)",
+                border: "2px solid var(--accent-purple)",
+                position: "relative",
+                overflow: "hidden",
+              }}
+            >
+              {/* Title */}
+              <div style={{
+                fontSize: "0.9rem",
+                fontWeight: 700,
+                marginBottom: "20px",
+                color: "var(--accent-purple)",
+                textAlign: "center",
+                textTransform: "uppercase",
+                letterSpacing: "0.1em",
+              }}>
+                🤖 Autonomous Credit Purchase Flow
+              </div>
+
+              {/* Horizontal Step Progression */}
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                position: "relative",
+              }}>
+                {/* Progress Bar Background */}
+                <div style={{
+                  position: "absolute",
+                  top: "20px",
+                  left: "10%",
+                  right: "10%",
+                  height: "3px",
+                  background: "var(--border)",
+                  zIndex: 0,
+                }} />
+
+                {/* Animated Progress Bar */}
+                <motion.div
+                  initial={{ width: "0%" }}
+                  animate={{
+                    width: creditState.autoBuyInProgress
+                      ? "50%"
+                      : creditState.lastAutoBuyStatus === "success"
+                      ? "100%"
+                      : "75%"
+                  }}
+                  transition={{ duration: 1, ease: "easeInOut" }}
+                  style={{
+                    position: "absolute",
+                    top: "20px",
+                    left: "10%",
+                    height: "3px",
+                    background: creditState.lastAutoBuyStatus === "failed"
+                      ? "var(--accent-error)"
+                      : "var(--accent-solana)",
+                    zIndex: 1,
+                  }}
+                />
+
+                {/* Step 1: Detected */}
+                <div style={{ flex: 1, textAlign: "center", zIndex: 2 }}>
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    style={{
+                      width: "40px",
+                      height: "40px",
+                      margin: "0 auto 12px",
+                      borderRadius: "50%",
+                      background: "var(--accent-solana)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "1.2rem",
+                      boxShadow: "0 0 20px rgba(34, 197, 94, 0.5)",
+                    }}
+                  >
+                    ✅
+                  </motion.div>
+                  <div style={{ fontSize: "0.75rem", fontWeight: 600 }}>Low Credit</div>
+                  <div style={{ fontSize: "0.65rem", color: "var(--text-tertiary)", marginTop: "4px" }}>
+                    Detected
+                  </div>
+                </div>
+
+                {/* Step 2: Checking Balance */}
+                <div style={{ flex: 1, textAlign: "center", zIndex: 2 }}>
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2 }}
+                    style={{
+                      width: "40px",
+                      height: "40px",
+                      margin: "0 auto 12px",
+                      borderRadius: "50%",
+                      background: creditState.autoBuyInProgress || creditState.lastAutoBuyStatus
+                        ? "var(--accent-solana)"
+                        : "var(--border)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "1.2rem",
+                      boxShadow: creditState.autoBuyInProgress || creditState.lastAutoBuyStatus
+                        ? "0 0 20px rgba(34, 197, 94, 0.5)"
+                        : "none",
+                    }}
+                  >
+                    {creditState.autoBuyInProgress || creditState.lastAutoBuyStatus ? "✅" : "💰"}
+                  </motion.div>
+                  <div style={{ fontSize: "0.75rem", fontWeight: 600 }}>Balance Check</div>
+                  <div style={{ fontSize: "0.65rem", color: "var(--text-tertiary)", marginTop: "4px" }}>
+                    {creditState.autoBuyInProgress || creditState.lastAutoBuyStatus ? "Verified" : "Pending"}
+                  </div>
+                </div>
+
+                {/* Step 3: Purchasing */}
+                <div style={{ flex: 1, textAlign: "center", zIndex: 2 }}>
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.4 }}
+                    style={{
+                      width: "40px",
+                      height: "40px",
+                      margin: "0 auto 12px",
+                      borderRadius: "50%",
+                      background: creditState.autoBuyInProgress
+                        ? "var(--accent-purple)"
+                        : creditState.lastAutoBuyStatus
+                        ? "var(--accent-solana)"
+                        : "var(--border)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "1.2rem",
+                      boxShadow: creditState.autoBuyInProgress
+                        ? "0 0 20px rgba(153, 69, 255, 0.5)"
+                        : creditState.lastAutoBuyStatus
+                        ? "0 0 20px rgba(34, 197, 94, 0.5)"
+                        : "none",
+                    }}
+                  >
+                    {creditState.autoBuyInProgress ? (
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                      >
+                        🔄
+                      </motion.div>
+                    ) : creditState.lastAutoBuyStatus ? "✅" : "🤖"}
+                  </motion.div>
+                  <div style={{ fontSize: "0.75rem", fontWeight: 600 }}>
+                    {creditState.autoBuyInProgress ? "Purchasing..." : "Purchase"}
+                  </div>
+                  <div style={{ fontSize: "0.65rem", color: "var(--text-tertiary)", marginTop: "4px" }}>
+                    {creditState.autoBuyInProgress
+                      ? "In Progress"
+                      : creditState.lastAutoBuyStatus
+                      ? "Completed"
+                      : "Ready"}
+                  </div>
+                </div>
+
+                {/* Step 4: Result */}
+                <div style={{ flex: 1, textAlign: "center", zIndex: 2 }}>
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: creditState.lastAutoBuyStatus ? 1 : 0.8 }}
+                    transition={{ delay: 0.6 }}
+                    style={{
+                      width: "40px",
+                      height: "40px",
+                      margin: "0 auto 12px",
+                      borderRadius: "50%",
+                      background: creditState.lastAutoBuyStatus === "success"
+                        ? "var(--accent-solana)"
+                        : creditState.lastAutoBuyStatus === "failed"
+                        ? "var(--accent-error)"
+                        : "var(--border)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "1.2rem",
+                      boxShadow: creditState.lastAutoBuyStatus === "success"
+                        ? "0 0 30px rgba(34, 197, 94, 0.8)"
+                        : creditState.lastAutoBuyStatus === "failed"
+                        ? "0 0 20px rgba(239, 68, 68, 0.5)"
+                        : "none",
+                    }}
+                  >
+                    {creditState.lastAutoBuyStatus === "success"
+                      ? "🎉"
+                      : creditState.lastAutoBuyStatus === "failed"
+                      ? "❌"
+                      : "⏳"}
+                  </motion.div>
+                  <div style={{ fontSize: "0.75rem", fontWeight: 600 }}>
+                    {creditState.lastAutoBuyStatus === "success"
+                      ? "Success!"
+                      : creditState.lastAutoBuyStatus === "failed"
+                      ? "Failed"
+                      : "Waiting"}
+                  </div>
+                  <div style={{ fontSize: "0.65rem", color: "var(--text-tertiary)", marginTop: "4px" }}>
+                    {creditState.lastAutoBuyStatus === "success"
+                      ? "Autonomous"
+                      : creditState.lastAutoBuyStatus === "failed"
+                      ? "Need Help"
+                      : "Stand By"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Message */}
+              {creditState.lastAutoBuyMessage && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  style={{
+                    marginTop: "20px",
+                    padding: "12px",
+                    background: creditState.lastAutoBuyStatus === "success"
+                      ? "rgba(34, 197, 94, 0.1)"
+                      : "rgba(239, 68, 68, 0.1)",
+                    border: `1px solid ${creditState.lastAutoBuyStatus === "success" ? "var(--accent-solana)" : "var(--accent-error)"}`,
+                    textAlign: "center",
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
+                  }}
+                >
+                  {creditState.lastAutoBuyMessage}
+                </motion.div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Stats Grid */}
         <div style={{
