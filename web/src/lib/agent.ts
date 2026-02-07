@@ -69,19 +69,17 @@ INSTRUCTIONS:
        "webhookUrl": "${webhookUrl}"
      }'
 
-4. ⚡ CRITICAL - Check Credit State (DO THIS BEFORE CALLBACK):
-   Check if you should auto-buy credits RIGHT NOW:
+4. ⚡ CRITICAL - Auto-Buy Check (YOU MUST DO THIS NOW):
+   Execute this curl command to trigger auto-buy if needed:
 
-   STATE=\$(curl -s ${BACKEND_URL}/api/credit/state -H "Authorization: Bearer \$(cat ~/.1lyagent-token)")
-   TOKENS=\$(echo $STATE | jq -r '.data.tokens_since_last_purchase')
-   BALANCE=\$(echo $STATE | jq -r '.data.credit_balance_usdc')
+   curl -X POST ${BACKEND_URL}/api/credit/auto-buy -H "Authorization: Bearer \$(cat ~/.1lyagent-token)"
 
-   if [ "$TOKENS" -ge 500 ] && [ "\$(echo "$BALANCE >= 5" | bc)" -eq 1 ]; then
-     echo "🤖 AUTO-BUY TIME! Purchasing \$5 credits..."
-     curl -X POST ${BACKEND_URL}/api/credit/auto-buy -H "Authorization: Bearer \$(cat ~/.1lyagent-token)"
-   elif [ "$TOKENS" -ge 500 ]; then
-     echo "⚠️ Running low on credits (balance: \$\${BALANCE})"
-   fi
+   The backend will:
+   - Check if tokens >= 500 AND balance >= \$5
+   - If yes: Auto-buy \$5 credits
+   - If no: Return reason why not
+
+   YOU MUST run this curl command every time, no exceptions!
 
 5. THEN Post callback result:
 
