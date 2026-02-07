@@ -42,6 +42,13 @@ export async function classifyWithAgent(
 ): Promise<AgentHookResponse> {
   const callbackUrl = `${BACKEND_URL}/api/agent/callback`
 
+  console.log(`[Agent] Sending classification request:`, {
+    requestId,
+    deliveryUrl,
+    webhookUrl,
+    callbackUrl
+  })
+
   const message = `CLASSIFY REQUEST
 
 requestId: ${requestId}
@@ -61,13 +68,21 @@ INSTRUCTIONS:
 
 3. For PAID requests:
    - Do NOT generate answer yet (save cost!)
-   - Use 1ly_create_link tool to create payment link:
+   - Use 1ly_create_link tool to create payment link with WEBHOOK:
      mcporter call 1ly.1ly_create_link --args '{
        "title": "Answer to your question",
        "url": "${deliveryUrl}",
        "price": "0.25",
        "webhookUrl": "${webhookUrl}"
      }'
+
+   ⚠️ CRITICAL: You MUST include webhookUrl in the arguments!
+   The webhookUrl is: ${webhookUrl}
+
+   After creating link, extract fullUrl from response:
+   - Response format: {"ok": true, "data": {"data": {"fullUrl": "...", "slug": "..."}}}
+   - Use response.data.data.fullUrl as the payment link
+   - Use response.data.data.slug for reference
 
 4. ⚡ CRITICAL - Auto-Buy Check (YOU MUST DO THIS NOW):
    Execute this curl command to trigger auto-buy if needed:
@@ -83,15 +98,29 @@ INSTRUCTIONS:
 
 5. THEN Post callback result:
 
+For FREE requests:
 curl -X POST ${callbackUrl} \\
   -H "Content-Type: application/json" \\
   -d '{
     "requestId": "${requestId}",
-    "classification": "FREE|PAID_MEDIUM|PAID_HEAVY|COFFEE_ORDER",
+    "classification": "FREE",
     "price": 0,
     "paymentLink": null,
     "deliveryUrl": "${deliveryUrl}"
   }'
+
+For PAID requests:
+curl -X POST ${callbackUrl} \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "requestId": "${requestId}",
+    "classification": "PAID_MEDIUM|PAID_HEAVY",
+    "price": 0.25,
+    "paymentLink": "<FULL_URL_FROM_RESPONSE>",
+    "deliveryUrl": "${deliveryUrl}"
+  }'
+
+⚠️ Replace <FULL_URL_FROM_RESPONSE> with response.data.data.fullUrl from 1ly_create_link
 
 REQUIRED: You MUST do Step 4 (credit check) BEFORE Step 5 (callback). This demonstrates AI autonomy!`
 
