@@ -28,6 +28,8 @@ export default function CreditModule() {
     lastAutoBuyMessage: null,
   })
   const [showSponsorIframe, setShowSponsorIframe] = useState(false)
+  const [showSponsorThanks, setShowSponsorThanks] = useState(false)
+  const [lastSponsorAt, setLastSponsorAt] = useState<string | null>(null)
 
   const sponsorLink = "https://1ly.store/1lyagent/credit-v2" // Credit sponsor link
 
@@ -36,10 +38,15 @@ export default function CreditModule() {
     fetchCreditState()
 
     // Poll every 2 seconds for live agent status
-    const interval = setInterval(fetchCreditState, 2000)
+    const interval = setInterval(() => {
+      fetchCreditState()
+      if (showSponsorIframe) {
+        fetchSponsorStatus()
+      }
+    }, 2000)
 
     return () => clearInterval(interval)
-  }, [])
+  }, [showSponsorIframe])
 
   const fetchCreditState = async () => {
     try {
@@ -62,6 +69,28 @@ export default function CreditModule() {
       }
     } catch (error) {
       console.error("Failed to fetch credit state:", error)
+    }
+  }
+
+  const fetchSponsorStatus = async () => {
+    try {
+      const response = await fetch("/api/activity?limit=5")
+      const json = await response.json()
+      if (json.ok && Array.isArray(json.data)) {
+        const sponsorEvent = json.data.find((entry: any) => entry.event === "CREDIT_SPONSORED")
+        if (sponsorEvent?.created_at) {
+          const createdAt = new Date(sponsorEvent.created_at).getTime()
+          const now = Date.now()
+          const isRecent = now - createdAt < 5 * 60 * 1000
+          if (isRecent && lastSponsorAt !== sponsorEvent.created_at) {
+            setLastSponsorAt(sponsorEvent.created_at)
+            setShowSponsorIframe(false)
+            setShowSponsorThanks(true)
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch sponsor status:", error)
     }
   }
 
@@ -133,7 +162,7 @@ export default function CreditModule() {
         </motion.div>
 
         {/* Sponsor Button */}
-        {!showSponsorIframe && (
+        {!showSponsorIframe && !showSponsorThanks && (
           <button
             onClick={() => setShowSponsorIframe(true)}
             className="btn btn-coffee"
@@ -145,6 +174,34 @@ export default function CreditModule() {
           >
             💳 SPONSOR CLAUDE CREDITS ($1)
           </button>
+        )}
+
+        {showSponsorThanks && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            style={{
+              padding: "16px",
+              border: "2px solid var(--accent-purple)",
+              marginBottom: "16px",
+              background: "rgba(168, 85, 247, 0.08)",
+              textAlign: "center",
+            }}
+          >
+            <div style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "6px" }}>
+              Thank you for sponsoring the credit.
+            </div>
+            <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+              If you want a refund, please contact 1ly.store with the transaction hash.
+            </div>
+            <button
+              onClick={() => setShowSponsorThanks(false)}
+              className="btn btn-secondary"
+              style={{ marginTop: "12px", width: "100%" }}
+            >
+              Close
+            </button>
+          </motion.div>
         )}
 
         {/* Sponsor Iframe */}

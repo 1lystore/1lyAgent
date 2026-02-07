@@ -122,6 +122,14 @@ export async function POST(req: NextRequest) {
     if (findError || !requests || requests.length === 0) {
       console.warn("No request found for linkSlug. Treating as standalone payment:", linkSlug, findError);
 
+      if (linkSlug === "credit-v2") {
+        await logActivity(
+          "CREDIT_SPONSORED",
+          `Credit sponsored | ${amount} ${currency} | Tx: ${txHash?.substring(0, 8)}...`,
+          linkSlug || purchaseId || "credit-v2"
+        ).catch(() => {});
+      }
+
       // Log activity so we still have a record for non-request links (e.g., credit-v2)
       await logActivity(
         "PAYMENT_CONFIRMED",

@@ -1,13 +1,16 @@
 "use client"
 
+import { useState } from "react"
 import { motion } from "framer-motion"
 import RequestModule from "@/components/RequestModule"
 import CreditModule from "@/components/CreditModule"
 import ActivityLog from "@/components/ActivityLog"
 import AgentStatus from "@/components/AgentStatus"
+import AboutModal from "@/components/AboutModal"
 import "./globals.css"
 
 export default function HomePage() {
+  const [isModalOpen, setIsModalOpen] = useState(false)
   return (
     <div style={{
       minHeight: "100vh",
@@ -56,28 +59,55 @@ export default function HomePage() {
           Self-pricing autonomous agent. Charges USDC for work. Auto-buys its own Claude credits.
         </p>
 
-        {/* Store Link */}
-        <motion.a
-          href="https://1ly.store/1lyagent"
-          target="_blank"
-          rel="noopener noreferrer"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          style={{
-            display: "inline-block",
-            marginTop: "24px",
-            padding: "10px 20px",
-            border: "1px solid var(--accent-solana)",
-            color: "var(--accent-solana)",
-            textDecoration: "none",
-            fontSize: "0.85rem",
-            fontWeight: 600,
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
-          }}
-        >
-          VIEW STORE ON 1LY ↗
-        </motion.a>
+        {/* Action Buttons */}
+        <div style={{
+          display: "flex",
+          gap: "16px",
+          justifyContent: "center",
+          marginTop: "24px",
+          flexWrap: "wrap",
+        }}>
+          <motion.button
+            onClick={() => setIsModalOpen(true)}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            style={{
+              padding: "10px 20px",
+              border: "1px solid var(--accent-purple)",
+              background: "transparent",
+              color: "var(--accent-purple)",
+              fontSize: "0.85rem",
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              cursor: "pointer",
+              fontFamily: "'JetBrains Mono', monospace",
+            }}
+          >
+            WHAT MAKES THIS UNIQUE
+          </motion.button>
+
+          <motion.a
+            href="https://1ly.store/1lyagent"
+            target="_blank"
+            rel="noopener noreferrer"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            style={{
+              display: "inline-block",
+              padding: "10px 20px",
+              border: "1px solid var(--accent-solana)",
+              color: "var(--accent-solana)",
+              textDecoration: "none",
+              fontSize: "0.85rem",
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+            }}
+          >
+            VIEW STORE ON 1LY ↗
+          </motion.a>
+        </div>
       </motion.header>
 
       {/* Main Grid */}
@@ -148,6 +178,9 @@ export default function HomePage() {
           </a>
         </div>
       </motion.footer>
+
+      {/* About Modal */}
+      <AboutModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   )
 }
