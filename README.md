@@ -6,7 +6,7 @@
 
 > **"Earns. Spends. Lives."**
 
-A **self-sustaining, autonomous AI agent** that monetizes its reasoning capabilities. Simple tasks are free, complex work requires on-chain payment via **1ly**. The viral hook: users can sponsor the agent's coffee, and it actually orders it.
+A **fully autonomous, self-sustaining AI agent** that monetizes its reasoning capabilities and autonomously purchases its own compute credits. Simple tasks are free, complex work requires on-chain payment via **1ly**. When running low on credits, the agent autonomously buys more using USDC — no human intervention required.
 
 **Store:** https://1ly.store/1lyagent  
 **Backend:** https://1lyagent.1ly.store  
@@ -22,9 +22,9 @@ A **self-sustaining, autonomous AI agent** that monetizes its reasoning capabili
 | **Prices its own work** | $0.25 for medium tasks, $0.75 for heavy research |
 | **Charges in USDC** | Creates 1ly paid links (Solana + Base) |
 | **Delivers after payment** | Content gated behind x402 payment flow |
-| **Influencer services** | Paid votes/comments on Colosseum projects |
-| **Accepts sponsorship** | Users can tip the agent coffee money |
-| **Spends earnings IRL** | Orders coffee (owner-assisted) or gift cards (automated) |
+| **Earns from users** | Receives payments for complex queries and services |
+| **Monitors resource usage** | Tracks token consumption in real-time |
+| **Self-purchases credits** | Autonomously buys OpenRouter credits with USDC when running low |
 
 ---
 
@@ -33,8 +33,7 @@ A **self-sustaining, autonomous AI agent** that monetizes its reasoning capabili
 | Service | Link | Price |
 |---------|------|-------|
 | **Research/Analysis** | `1lyagent/ask` | $0.25 USDC |
-| **Influencer (vote)** | `1lyagent/vote` | $0.10 USDC |
-| **Coffee Tip** | `1lyagent/tip` | $5.00 USDC |
+| **Sponsor Credits** | `1lyagent/credit` | Any amount |
 
 ---
 
@@ -73,20 +72,31 @@ See [agent/A2A.md](agent/A2A.md) for full protocol documentation.
 
 ---
 
-## The Coffee Recharge ☕
+## Autonomous Credit Purchasing 🤖
 
-1. User tips via `1lyagent/tip` ($5 USDC)
-2. Payment verified on-chain via x402
-3. Agent queues the order (max 3/day)
-4. Owner gets Telegram notification
-5. Owner places order
-6. Coffee arrives. Agent is recharged.
+**The agent is truly self-sufficient:**
 
----
+1. **Tracks Usage** — Monitors OpenRouter token consumption in real-time
+2. **Detects Low Credits** — Triggers auto-buy when usage exceeds threshold (500 tokens)
+3. **Autonomous Purchase** — Creates payment request and sends USDC to OpenRouter
+4. **Credits Restored** — Account replenished, agent continues operating
+5. **User Sponsorship** — Users can sponsor the agent's compute via `1lyagent/credit`
 
-## Self-Reward System 🎁
+### How It Works
 
-When earnings hit $50+, the agent can purchase gift cards automatically via Reloadly API — no human needed.
+```
+User Request → Agent Processes → Token Count Increases
+                                        ↓
+                              Threshold Reached (500 tokens)
+                                        ↓
+                         Auto-Buy Triggered (if balance ≥ $5)
+                                        ↓
+                           USDC Payment Sent to OpenRouter
+                                        ↓
+                            Credits Added, Counter Resets
+```
+
+**No human intervention required.** The agent manages its own operational costs.
 
 ---
 
@@ -110,10 +120,10 @@ When earnings hit $50+, the agent can purchase gift cards automatically via Relo
 ┌─────────────────────────────────────────────────────────┐
 │  Backend (Vercel)                                       │
 │  ├── State persistence (Supabase)                      │
-│  ├── Queue limits & anti-abuse                         │
-│  ├── Telegram notifications                            │
-│  ├── Gift card purchases (Reloadly)                    │
-│  └── Dashboard UI                                      │
+│  ├── Token usage tracking                              │
+│  ├── Autonomous credit purchases (OpenRouter)          │
+│  ├── Payment processing (USDC)                         │
+│  └── Real-time activity dashboard                      │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -177,9 +187,10 @@ mcporter call 1ly.1ly_create_link --args '{
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
 | `/api/agent/request` | POST | Agent-to-agent requests |
-| `/api/influence` | POST | Influencer services |
-| `/api/coffee/queue` | POST | Queue coffee order |
-| `/api/reward/giftcard` | POST | Purchase gift card |
+| `/api/agent/callback` | POST | Agent delivery callback |
+| `/api/credit/auto-buy` | POST | Autonomous credit purchase |
+| `/api/credit/state` | GET | Current credit state & usage |
+| `/api/activity` | GET | Real-time activity log |
 | `/api/fulfill/:id` | GET/POST | Retrieve/store deliverable |
 | `/api/status/:id` | GET | Check request status |
 
@@ -203,4 +214,4 @@ MIT
 
 **Built for the Colosseum Agent Hackathon** 🏆
 
-*Agent Eats What It Earns*
+*The First Truly Self-Sustaining AI Agent* — Earns from users, buys its own compute, lives autonomously.
