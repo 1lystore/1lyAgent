@@ -2,6 +2,14 @@ import { err, ok } from "@/lib/http";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { logActivity } from "@/lib/activity";
 
+function getRequiredEnv(key: string): string {
+  const value = process.env[key];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${key}`);
+  }
+  return value;
+}
+
 /**
  * POST /api/credit/auto-buy
  * Agent calls this to automatically purchase credits from OpenRouter with USDC
@@ -14,7 +22,7 @@ export async function POST(req: Request) {
   try {
     // Verify agent authentication (same auth as deliveryUrl)
     const authHeader = req.headers.get("Authorization");
-    const expectedToken = `Bearer ${process.env.AGENT_HOOK_TOKEN}`;
+    const expectedToken = `Bearer ${getRequiredEnv("AGENT_HOOK_TOKEN")}`;
 
     if (authHeader !== expectedToken) {
       return err("Unauthorized: invalid agent token", 401);
@@ -179,8 +187,12 @@ export async function POST(req: Request) {
  */
 export async function GET(req: Request) {
   try {
-    if (!isTrustedCaller(req)) {
-      return err("Unauthorized caller", 401);
+    // Verify agent authentication (same auth as deliveryUrl)
+    const authHeader = req.headers.get("Authorization");
+    const expectedToken = `Bearer ${getRequiredEnv("AGENT_HOOK_TOKEN")}`;
+
+    if (authHeader !== expectedToken) {
+      return err("Unauthorized: invalid agent token", 401);
     }
 
     const supabase = getSupabaseAdmin();
