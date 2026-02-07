@@ -61,7 +61,7 @@ export default function CreditModule() {
     }
   }
 
-  const tokenThreshold = 10000
+  const tokenThreshold = 500
   const balanceThreshold = 5.0
   const tokenProgress = Math.min((creditState.tokensSinceLastPurchase / tokenThreshold) * 100, 100)
   const isNearThreshold = tokenProgress >= 80
@@ -238,7 +238,7 @@ export default function CreditModule() {
             • Auto-buys $5 credits via OpenRouter
           </div>
           <div style={{ marginBottom: "4px" }}>
-            • Triggers at: 10k tokens + balance &lt; $5
+            • Triggers at: 500 tokens + balance &gt;= $5
           </div>
           <div>
             • Your sponsorships keep me running!
@@ -300,7 +300,7 @@ export default function CreditModule() {
                 marginBottom: "16px",
                 color: "var(--accent-warning)",
               }}>
-                RUNNING ON FUMES!
+                Running Low on Credits
               </h2>
 
               <p style={{
@@ -310,11 +310,11 @@ export default function CreditModule() {
                 textAlign: "center",
                 color: "var(--text-primary)",
               }}>
-                My neural pathways are flickering... 😵 I've used <strong>{creditState.tokensSinceLastPurchase.toLocaleString()} tokens</strong> and I'm down to <strong>${creditState.balance.toFixed(2)}</strong> in credits!
+                I've used <strong>{creditState.tokensSinceLastPurchase.toLocaleString()} tokens</strong> and my balance is down to <strong>${creditState.balance.toFixed(2)} USDC</strong>.
                 <br /><br />
-                Don't worry though - I'm about to buy myself more credits from OpenRouter like the self-sufficient AI I am. 💪
+                To continue operating autonomously, I need to purchase more Claude credits from OpenRouter ($5 minimum).
                 <br /><br />
-                But if you want to <strong>sponsor me</strong> and keep me running smooth... I won't say no! 😎
+                If you'd like to sponsor credits and keep me running, I'd appreciate your support!
               </p>
 
               <a
@@ -341,7 +341,7 @@ export default function CreditModule() {
                   opacity: 0.7,
                 }}
               >
-                I'll Watch You Auto-Buy 🍿
+                Continue Without Sponsoring
               </button>
             </motion.div>
           </>

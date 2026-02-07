@@ -5,11 +5,11 @@ import { logActivity } from "@/lib/activity";
 
 /**
  * POST /api/credit/auto-buy
- * Agent calls this to automatically purchase credits from OpenRouter
+ * Agent calls this to automatically purchase credits from OpenRouter with USDC
  *
  * Triggers when:
- * - tokens_since_last_purchase >= 10,000
- * - credit_balance_usdc < $5
+ * - tokens_since_last_purchase >= 500 (testing threshold)
+ * - credit_balance_usdc >= $5 (has money to spend)
  */
 export async function POST(req: Request) {
   try {
@@ -34,14 +34,14 @@ export async function POST(req: Request) {
     const balance = Number(state.credit_balance_usdc) || 0;
 
     // 2. Check if we should auto-buy
-    const shouldAutoBuy = tokensUsed >= 10000 && balance < 5.0;
+    const shouldAutoBuy = tokensUsed >= 500 && balance >= 5.0;
 
     if (!shouldAutoBuy) {
       return ok({
         purchased: false,
-        reason: tokensUsed < 10000
-          ? `Only ${tokensUsed} tokens used (need 10k)`
-          : `Balance $${balance.toFixed(2)} is sufficient`,
+        reason: tokensUsed < 500
+          ? `Only ${tokensUsed} tokens used (need 500)`
+          : `Balance $${balance.toFixed(2)} < $5 (insufficient)`,
         tokens_used: tokensUsed,
         balance,
       });
@@ -79,13 +79,15 @@ export async function POST(req: Request) {
 
     console.log(`🤖 Auto-buying $${PURCHASE_AMOUNT} credits from OpenRouter...`);
 
-    // 5. Call OpenRouter API to add credits
+    // 5. Call OpenRouter API to add credits with USDC
     const openrouterApiKey = process.env.OPENROUTER_API_KEY;
     if (!openrouterApiKey) {
       throw new Error("OPENROUTER_API_KEY not configured");
     }
 
-    // OpenRouter credit top-up endpoint
+    // TODO: Switch to Coinbase USDC payment once Base wallet is funded
+    // For now using /credits/add (requires card on file)
+    // Future: POST /api/v1/credits/coinbase with USDC from Base wallet
     const response = await fetch("https://openrouter.ai/api/v1/credits/add", {
       method: "POST",
       headers: {

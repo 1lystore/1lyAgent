@@ -30,10 +30,12 @@ export async function GET() {
       });
     }
 
-    // Check if low on credit: tokens > 10k AND balance < $5
-    const isLowOnCredit =
-      (state.tokens_since_last_purchase || 0) >= 10000 &&
-      (state.credit_balance_usdc || 0) < 5.0;
+    // Check if low on credit: tokens >= 500 AND balance < $5
+    const tokens = Number(state.tokens_since_last_purchase || 0);
+    const balance = Number(state.credit_balance_usdc || 0);
+    const isLowOnCredit = tokens >= 500 && balance < 5.0;
+
+    console.log(`[Credit State] tokens=${tokens}, balance=${balance}, isLow=${isLowOnCredit}`);
 
     return ok({
       credit_balance_usdc: Number(state.credit_balance_usdc) || 0,
