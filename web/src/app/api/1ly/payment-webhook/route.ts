@@ -120,10 +120,23 @@ export async function POST(req: NextRequest) {
       .limit(1);
 
     if (findError || !requests || requests.length === 0) {
-      console.error("Request not found for linkSlug:", linkSlug, findError);
+      console.warn("No request found for linkSlug. Treating as standalone payment:", linkSlug, findError);
+
+      // Log activity so we still have a record for non-request links (e.g., credit-v2)
+      await logActivity(
+        "PAYMENT_CONFIRMED",
+        `Standalone payment confirmed | ${amount} ${currency} | Tx: ${txHash?.substring(0, 8)}... | linkSlug=${linkSlug}`,
+        linkSlug || purchaseId || "unknown"
+      ).catch(() => {});
+
       return new Response(
-        JSON.stringify({ error: "Request not found for this link" }),
-        { status: 404, headers: { "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: true,
+          message: "Payment confirmed (no request matched)",
+          linkSlug,
+          purchaseId,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
       );
     }
 
