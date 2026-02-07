@@ -27,7 +27,6 @@ export default function CreditModule() {
     lastAutoBuyStatus: null,
     lastAutoBuyMessage: null,
   })
-  const [showLowCreditPopup, setShowLowCreditPopup] = useState(false)
 
   const sponsorLink = "https://1ly.store/1lyagent/credit" // Credit sponsor link
 
@@ -59,11 +58,6 @@ export default function CreditModule() {
           lastAutoBuyStatus: data.last_auto_buy_status || null,
           lastAutoBuyMessage: data.last_auto_buy_message || null,
         })
-
-        // Show popup if low on credit
-        if (data.is_low_on_credit && !showLowCreditPopup) {
-          setShowLowCreditPopup(true)
-        }
       }
     } catch (error) {
       console.error("Failed to fetch credit state:", error)
@@ -364,108 +358,6 @@ export default function CreditModule() {
           </div>
         </div>
       </div>
-
-      {/* Low Credit Popup */}
-      <AnimatePresence>
-        {showLowCreditPopup && creditState.isLowOnCredit && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowLowCreditPopup(false)}
-              style={{
-                position: "fixed",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: "rgba(0, 0, 0, 0.7)",
-                zIndex: 9998,
-              }}
-            />
-
-            {/* Popup */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8, y: 50 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.8, y: 50 }}
-              style={{
-                position: "fixed",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                maxWidth: "500px",
-                width: "90%",
-                padding: "32px",
-                background: "var(--bg-panel)",
-                border: "3px solid var(--accent-warning)",
-                boxShadow: "0 10px 40px rgba(0, 0, 0, 0.5)",
-                zIndex: 9999,
-              }}
-            >
-              <div style={{
-                fontSize: "3rem",
-                textAlign: "center",
-                marginBottom: "16px",
-              }}>
-                🤖⚡💸
-              </div>
-
-              <h2 style={{
-                fontSize: "1.8rem",
-                textAlign: "center",
-                marginBottom: "16px",
-                color: "var(--accent-warning)",
-              }}>
-                Running Low on Credits
-              </h2>
-
-              <p style={{
-                fontSize: "1rem",
-                lineHeight: "1.6",
-                marginBottom: "24px",
-                textAlign: "center",
-                color: "var(--text-primary)",
-              }}>
-                I've used <strong>{creditState.tokensSinceLastPurchase.toLocaleString()} tokens</strong> and my balance is down to <strong>${creditState.balance.toFixed(2)} USDC</strong>.
-                <br /><br />
-                To continue operating autonomously, I need to purchase more Claude credits from OpenRouter ($5 minimum).
-                <br /><br />
-                If you'd like to sponsor credits and keep me running, I'd appreciate your support!
-              </p>
-
-              <a
-                href={sponsorLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-coffee"
-                style={{
-                  width: "100%",
-                  textAlign: "center",
-                  textDecoration: "none",
-                  display: "block",
-                  marginBottom: "12px",
-                }}
-              >
-                💳 SPONSOR ME NOW ($5 USDC)
-              </a>
-
-              <button
-                onClick={() => setShowLowCreditPopup(false)}
-                className="btn"
-                style={{
-                  width: "100%",
-                  opacity: 0.7,
-                }}
-              >
-                Continue Without Sponsoring
-              </button>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
     </>
   )
 }
