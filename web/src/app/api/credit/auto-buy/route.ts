@@ -89,6 +89,16 @@ export async function POST(req: Request) {
 
     console.log(`🤖 Auto-buying $${PURCHASE_AMOUNT} credits from OpenRouter...`);
 
+    // 4.5. Set UI status: Purchase in progress
+    await supabase
+      .from("credit_state")
+      .update({
+        auto_buy_in_progress: true,
+        last_auto_buy_message: `🤖 Purchasing $${PURCHASE_AMOUNT} credits from OpenRouter...`,
+        last_auto_buy_status: null,
+      })
+      .eq("id", state.id);
+
     // 5. Call OpenRouter API to add credits with USDC
     const openrouterApiKey = process.env.OPENROUTER_API_KEY;
     if (!openrouterApiKey) {
@@ -114,11 +124,21 @@ export async function POST(req: Request) {
       const errorText = await response.text();
       console.error("OpenRouter API error:", errorText);
 
-      // Mark purchase as failed
+      // Mark purchase as failed and update UI status
       await supabase
         .from("credit_purchases")
         .update({ status: "FAILED", provider_status: errorText })
         .eq("id", purchase.id);
+
+      await supabase
+        .from("credit_state")
+        .update({
+          auto_buy_in_progress: false,
+          last_auto_buy_status: "failed",
+          last_auto_buy_message: "❌ Purchase failed: OpenRouter API error",
+          last_auto_buy_error: errorText,
+        })
+        .eq("id", state.id);
 
       throw new Error(`OpenRouter API failed: ${errorText}`);
     }
@@ -136,7 +156,7 @@ export async function POST(req: Request) {
       })
       .eq("id", purchase.id);
 
-    // 7. Update credit state
+    // 7. Update credit state with success status
     const newBalance = balance - PURCHASE_AMOUNT;
     const { error: updateError } = await supabase
       .from("credit_state")
@@ -145,6 +165,10 @@ export async function POST(req: Request) {
         tokens_since_last_purchase: 0, // Reset token counter
         daily_purchase_count: (state.daily_purchase_count || 0) + 1,
         last_auto_purchase_at: new Date().toISOString(),
+        auto_buy_in_progress: false,
+        last_auto_buy_status: "success",
+        last_auto_buy_message: `✅ Auto-bought $${PURCHASE_AMOUNT}! Balance: $${balance.toFixed(2)} → $${newBalance.toFixed(2)}`,
+        last_auto_buy_error: null,
       })
       .eq("id", state.id);
 
@@ -170,6 +194,26 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     console.error("Auto-buy error:", e);
+
+    // Update UI status: Failed
+    try {
+      const supabase = getSupabaseAdmin();
+      const { data: state } = await supabase.from("credit_state").select("id").limit(1).single();
+
+      if (state) {
+        await supabase
+          .from("credit_state")
+          .update({
+            auto_buy_in_progress: false,
+            last_auto_buy_status: "failed",
+            last_auto_buy_message: `❌ Purchase failed: ${e instanceof Error ? e.message : "Unknown error"}`,
+            last_auto_buy_error: e instanceof Error ? e.stack : String(e),
+          })
+          .eq("id", state.id);
+      }
+    } catch (updateErr) {
+      console.error("Failed to update error status:", updateErr);
+    }
 
     await logActivity(
       "ERROR",

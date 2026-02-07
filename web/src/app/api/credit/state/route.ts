@@ -45,6 +45,10 @@ export async function GET() {
       last_auto_purchase_at: state.last_auto_purchase_at || null,
       next_purchase_window: state.next_purchase_window || null,
       is_low_on_credit: isLowOnCredit,
+      // Live status for UI feedback
+      auto_buy_in_progress: state.auto_buy_in_progress || false,
+      last_auto_buy_status: state.last_auto_buy_status || null,
+      last_auto_buy_message: state.last_auto_buy_message || null,
     });
   } catch (e) {
     console.error("Failed to fetch credit state:", e);

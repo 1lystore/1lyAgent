@@ -10,6 +10,9 @@ interface CreditState {
   dailyPurchaseCount: number
   lastAutoPurchase: string | null
   isLowOnCredit: boolean
+  autoBuyInProgress: boolean
+  lastAutoBuyStatus: "success" | "failed" | null
+  lastAutoBuyMessage: string | null
 }
 
 export default function CreditModule() {
@@ -20,6 +23,9 @@ export default function CreditModule() {
     dailyPurchaseCount: 0,
     lastAutoPurchase: null,
     isLowOnCredit: false,
+    autoBuyInProgress: false,
+    lastAutoBuyStatus: null,
+    lastAutoBuyMessage: null,
   })
   const [showLowCreditPopup, setShowLowCreditPopup] = useState(false)
 
@@ -49,6 +55,9 @@ export default function CreditModule() {
           dailyPurchaseCount: data.daily_purchase_count || 0,
           lastAutoPurchase: data.last_auto_purchase_at,
           isLowOnCredit: data.is_low_on_credit || false,
+          autoBuyInProgress: data.auto_buy_in_progress || false,
+          lastAutoBuyStatus: data.last_auto_buy_status || null,
+          lastAutoBuyMessage: data.last_auto_buy_message || null,
         })
 
         // Show popup if low on credit
@@ -77,6 +86,116 @@ export default function CreditModule() {
             Self-sufficient AI. Auto-buys credits when running low via OpenRouter.
           </p>
         </div>
+
+        {/* Live Status Indicators */}
+        <AnimatePresence mode="wait">
+          {creditState.autoBuyInProgress && (
+            <motion.div
+              key="in-progress"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              style={{
+                padding: "16px",
+                marginBottom: "16px",
+                background: "rgba(59, 130, 246, 0.1)",
+                border: "2px solid rgb(59, 130, 246)",
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+              }}
+            >
+              <div
+                style={{
+                  width: "16px",
+                  height: "16px",
+                  border: "2px solid rgb(59, 130, 246)",
+                  borderTopColor: "transparent",
+                  borderRadius: "50%",
+                  animation: "spin 1s linear infinite",
+                }}
+              />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, marginBottom: "4px" }}>Auto-Buy In Progress</div>
+                <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+                  {creditState.lastAutoBuyMessage || "Purchasing credits from OpenRouter..."}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {!creditState.autoBuyInProgress && creditState.lastAutoBuyStatus === "success" && creditState.lastAutoBuyMessage && (
+            <motion.div
+              key="success"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              style={{
+                padding: "16px",
+                marginBottom: "16px",
+                background: "rgba(34, 197, 94, 0.1)",
+                border: "2px solid rgb(34, 197, 94)",
+              }}
+            >
+              <div style={{ fontWeight: 600, marginBottom: "4px", color: "rgb(34, 197, 94)" }}>
+                {creditState.lastAutoBuyMessage}
+              </div>
+              <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                Autonomous agent successfully purchased credits!
+              </div>
+            </motion.div>
+          )}
+
+          {!creditState.autoBuyInProgress && creditState.lastAutoBuyStatus === "failed" && creditState.lastAutoBuyMessage && (
+            <motion.div
+              key="failed"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              style={{
+                padding: "16px",
+                marginBottom: "16px",
+                background: "rgba(239, 68, 68, 0.1)",
+                border: "2px solid rgb(239, 68, 68)",
+              }}
+            >
+              <div style={{ fontWeight: 600, marginBottom: "4px", color: "rgb(239, 68, 68)" }}>
+                {creditState.lastAutoBuyMessage}
+              </div>
+              <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                Need sponsorship to continue autonomous operations
+              </div>
+            </motion.div>
+          )}
+
+          {creditState.isLowOnCredit && !creditState.autoBuyInProgress && (
+            <motion.div
+              key="low-credit"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              style={{
+                padding: "16px",
+                marginBottom: "16px",
+                background: "rgba(251, 191, 36, 0.1)",
+                border: "2px solid var(--accent-warning)",
+              }}
+            >
+              <div style={{ fontWeight: 600, marginBottom: "4px", color: "var(--accent-warning)" }}>
+                ⚠️ Running Low on Credits
+              </div>
+              <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+                {creditState.tokensSinceLastPurchase} tokens used, ${creditState.balance.toFixed(2)} balance remaining
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <style jsx>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
 
         {/* Credit Balance Display */}
         <motion.div
