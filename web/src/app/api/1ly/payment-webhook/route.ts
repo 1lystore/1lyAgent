@@ -142,8 +142,8 @@ export async function POST(req: NextRequest) {
       if (linkSlug === "credit-v2") {
         await logActivity(
           "CREDIT_SPONSORED",
-          `Credit sponsored | ${amount} ${currency} | Tx: ${txHash?.substring(0, 8)}...`,
-          linkSlug || purchaseId || "credit-v2"
+          `Credit sponsored | ${amount} ${currency} | Tx: ${txHash?.substring(0, 8)}... | linkSlug=${linkSlug}`,
+          undefined
         ).catch(() => {});
       }
 
@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
       await logActivity(
         "PAYMENT_CONFIRMED",
         `Standalone payment confirmed | ${amount} ${currency} | Tx: ${txHash?.substring(0, 8)}... | linkSlug=${linkSlug}`,
-        linkSlug || purchaseId || "unknown"
+        undefined
       ).catch(() => {});
 
       return new Response(
