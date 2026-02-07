@@ -1,4 +1,3 @@
-import { isTrustedCaller } from "@/lib/auth";
 import { err, ok } from "@/lib/http";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { logActivity } from "@/lib/activity";
@@ -13,9 +12,12 @@ import { logActivity } from "@/lib/activity";
  */
 export async function POST(req: Request) {
   try {
-    // Only agent can trigger this
-    if (!isTrustedCaller(req)) {
-      return err("Unauthorized caller", 401);
+    // Verify agent authentication (same auth as deliveryUrl)
+    const authHeader = req.headers.get("Authorization");
+    const expectedToken = `Bearer ${process.env.AGENT_HOOK_TOKEN}`;
+
+    if (authHeader !== expectedToken) {
+      return err("Unauthorized: invalid agent token", 401);
     }
 
     const supabase = getSupabaseAdmin();
